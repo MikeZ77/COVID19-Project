@@ -1,10 +1,13 @@
 from scipy import stats
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+import numpy as np
 import pandas as pd
 
 
 DATA_PATH = 'output/'
-IMAGE_PATH = 'images/linear_regression/'
+IMAGE_PATH_REGRESSION = 'images/linear_regression/regression_plot/'
+IMAGE_PATH_RISIDUALS = 'images/linear_regression/risiduals/'
 FILE = 'total_cases_with_socioecon.csv'
 
 
@@ -40,19 +43,52 @@ def check_linearity(covid_df):
     dependent.remove('death')
 
     for variable in dependent:
+        reg = stats.linregress(covid_df[variable], covid_df['death'])
         plt.figure(figsize=(24, 8))
         plt.plot(covid_df[variable], covid_df['death'], 'b.', alpha=0.5)
-        plt.savefig(IMAGE_PATH + variable + ".png")
+        plt.plot(covid_df[variable], reg.intercept + reg.slope * covid_df[variable], 'r', linewidth=2)
+        plt.savefig(IMAGE_PATH_REGRESSION + variable + ".png")
+        plt.close()
 
 
-def perform_regression(covid_df):
-    reg = stats.linregress(covid_df['pop_density'], covid_df['death'])
-    print(reg.pvalue)
-    print(reg.rvalue**2)
+def output_regression_details(covid_df):
+    """
+    For analysis only. Prints out the statistical summary for the given regression.
+    """
+    data = pd.DataFrame({'y': covid_df['death'], 'x': covid_df['pop_density'], 'intercept': 1})
+    results = sm.OLS(data['y'], data[['x', 'intercept']]).fit()
+    print(results.summary())
+
+def check_risidual_normality(covid_df):
+
+    dependent = list(covid_df.columns)
+    dependent.remove('death')
+
+    for variable in dependent:
+        reg = stats.linregress(covid_df[variable], covid_df['death'])
+        residuals = covid_df['death'] - (reg.slope * covid_df[variable] + reg.intercept)
+        # Check the pvalue for normality of the risidual
+        # print(stats.normaltest(residuals).pvalue)
+
+        plt.figure(figsize=(24, 8))
+        plt.hist(residuals, bins=len(covid_df.index))
+        plt.title("Histogram Risiduals - " + variable)
+        plt.xlabel(variable)
+        plt.ylabel("Deaths")
+        plt.savefig(IMAGE_PATH_RISIDUALS + variable + ".png")
+        plt.close()
 
 
-def check_risidual_normality():
-    pass
+def output_regression(covid_df):
+    dependent = list(covid_df.columns)
+    dependent.remove('death')
+
+    for variable in dependent:
+        reg = stats.linregress(covid_df[variable], covid_df['death'])
+        print(variable)
+        print("pvalue: " + str(reg.pvalue))
+        print("R^2: " + str(reg.rvalue**2))
+        print()
 
 
 def main():
@@ -63,10 +99,56 @@ def main():
     (3) The residuals are normally distributed and iid.
     """
 
+    """
+    ASSUMPTIONS: 
+    (1) The sample is almost the entire population (besides a few states like Hawaii and Alaska).
+
+    (2) Upon inspecting the regression plots, the relation is clearly linear.
+
+    (3) Out of interest, the risidual of all variables is clearly not normal.Obviously, transforming the the variable for a right
+    skewed distribution with something like np.log() will have no impact on the risidual. Using the statistical summary
+    of the regression, it can be shown that the distributions have high kurtosis and are skewed to the right. For example,
+    Below is the output for populatioon density. It has significant kurtosis and skewness (right). For reference, a normal 
+    distribution has a kurtosis of approximatley 3 and skewness of 0.
+
+                                    OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:                      y   R-squared:                       0.575
+    Model:                            OLS   Adj. R-squared:                  0.566
+    Method:                 Least Squares   F-statistic:                     64.95
+    Date:                Tue, 28 Jul 2020   Prob (F-statistic):           1.79e-10
+    Time:                        12:13:48   Log-Likelihood:                -468.14
+    No. Observations:                  50   AIC:                             940.3
+    Df Residuals:                      48   BIC:                             944.1
+    Df Model:                           1                                         
+    Covariance Type:            nonrobust                                         
+    ==============================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+    ------------------------------------------------------------------------------
+    x              7.0023      0.869      8.059      0.000       5.255       8.749
+    intercept   -247.4002    536.970     -0.461      0.647   -1327.051     832.251
+    ==============================================================================
+    Omnibus:                       37.539   Durbin-Watson:                   2.051
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):              173.188
+    Skew:                           1.760   Prob(JB):                     2.47e-38
+    Kurtosis:                      11.411   Cond. No.                         816.
+    ==============================================================================
+
+    However upon visually inspecting the histogram plot of the risidual, the majority of the variables appear 'normal enough'
+    to get value out of the regression. First, n >= 40, and second, this is the population data and not the sample
+    data.
+
+    FINDINGS: 
+    We find that many of the variables are linear (pvalue < 0.05), however, in general their variance is not well explained.
+    The most significant finding is population density with a pvalue of 1.7934825125225636e-10 and an R^2 of 0.575.
+    """
+
     covid_df = read_data()
     covid_df = select_variables(covid_df)
     check_linearity(covid_df)
-    perform_regression(covid_df)
+    check_risidual_normality(covid_df)
+    # output_regression_details(covid_df)
+    output_regression(covid_df)
 
 
 if __name__ == '__main__':

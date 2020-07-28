@@ -5,6 +5,8 @@ SETUP:
 pip install pandas
 pip install plotly==4.9.0
 pip install kaleido==0.0.1
+pip install matplotlib
+pip install statsmodels
 
 
 
