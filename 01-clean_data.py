@@ -99,13 +99,25 @@ def socio_econ_grouped_by_state(data_store_df):
 
     socio_econ_headers = list(socio_econ_df.columns)
     socio_econ_headers.remove('cdc_svi_overall_ranking')
+    socio_econ_headers.remove('em_total_pop_median_age')
     socio_econ_headers.remove('pop_density')
+    socio_econ_headers.remove('em_total_housing_units_avg_household_size_owned')
 
-    socio_econ_avg_df = socio_econ_df.groupby('state')[['cdc_svi_overall_ranking', 'pop_density']].agg('mean')
+    socio_econ_headers_to_average = [
+        'cdc_svi_overall_ranking',
+        'em_total_pop_median_age',
+        'pop_density',
+        'em_total_housing_units_avg_household_size_owned'
+    ]
+
+    socio_econ_avg_df = socio_econ_df.groupby('state')[socio_econ_headers_to_average].agg('mean')
     socio_econ_total_df = socio_econ_df.groupby('state')[socio_econ_headers].agg('sum')
-
     socio_econ_df = socio_econ_total_df.merge(socio_econ_avg_df, how='left', on='state')
+
+    socio_econ_over_60_avg_df = socio_econ_over_60_df.groupby('state')['em_over_60_pop_median_age'].agg('mean')
+    socio_econ_over_60_df = socio_econ_over_60_df.drop('em_over_60_pop_median_age', axis=1)
     socio_econ_over_60_df = socio_econ_over_60_df.groupby('state').agg('sum')
+    socio_econ_over_60_df = socio_econ_over_60_df.merge(socio_econ_over_60_avg_df, how='left', on='state')
 
     data_store_df['daily socioecon'] = socio_econ_df
     data_store_df['daily socioecon over 60'] = socio_econ_over_60_df

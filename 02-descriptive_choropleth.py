@@ -6,6 +6,13 @@ import pandas as pd
 DATA_PATH = 'output/'
 IMAGE_PATH = 'images/'
 FILE = 'total_cases_with_socioecon.csv'
+scope = PlotlyScope()
+
+
+def get_latest_date(date_df):
+    current_date = str(date_df.values[0])
+    current_date = dt.datetime.strptime(current_date, '%Y%m%d').date().isoformat()
+    return current_date
 
 
 def read_data():
@@ -14,40 +21,80 @@ def read_data():
 
 
 def set_data_set(covid_df):
-    map_features = ['state', 'death', 'pop_density', 'cdc_svi_overall_ranking', 'date']
+    map_features = ['state', 'death', 'pop_density', 'cdc_svi_overall_ranking', 'et_over_60_population', 'date']
     covid_df = covid_df[map_features]
     return covid_df
 
-def map_features(covid_df):
+def plot_deaths(covid_df):
 
-    current_date = str(covid_df['date'].values[0])
-    current_date = dt.datetime.strptime(current_date, '%Y%m%d').date().isoformat()
-
-    scope = PlotlyScope()
+    current_date = get_latest_date(covid_df['date'])
 
     fig = go.Figure(data=go.Choropleth(
-        locations=covid_df['state'],  # Spatial coordinates
-        z=covid_df['death'].astype(int),  # Data to be color-coded
-        locationmode='USA-states',  # set of locations match entries in `locations`
+        locations=covid_df['state'],
+        z=covid_df['death'].astype(int),
+        locationmode='USA-states',
         colorscale='Reds',
-        colorbar_title="Deaths",
+        # colorbar_title="Deaths",
         # marker_line_color='white'
     ))
 
     fig.update_layout(
         title_text='Total Deaths per US State as of ' + current_date,
-        geo_scope='usa',  # limite map scope to USA
+        geo_scope='usa',
     )
 
     with open(IMAGE_PATH + "deaths_us_map.png", "wb") as file:
         file.write(scope.transform(fig, format="png"))
 
 
+def plot_death_per_population_over_60(covid_df):
+
+    covid_df['death_by_population'] = covid_df['death'] / covid_df['et_over_60_population']
+    current_date = get_latest_date(covid_df['date'])
+
+    fig = go.Figure(data=go.Choropleth(
+        locations=covid_df['state'],
+        z=covid_df['death_by_population'].astype(float),
+        locationmode='USA-states',
+        colorscale='Reds',
+    ))
+
+    fig.update_layout(
+        title_text='Deaths per Pop Over 60 as of ' + current_date,
+        geo_scope='usa',
+    )
+
+    with open(IMAGE_PATH + "deaths_per_over_60_map.png", "wb") as file:
+        file.write(scope.transform(fig, format="png"))
+
+
+def plot_death_per_population_density(covid_df):
+
+    covid_df['death_by_density'] = covid_df['death'] / covid_df['pop_density']
+    current_date = get_latest_date(covid_df['date'])
+
+    fig = go.Figure(data=go.Choropleth(
+        locations=covid_df['state'],
+        z=covid_df['death_by_density'].astype(float),
+        locationmode='USA-states',
+        colorscale='Reds',
+    ))
+
+    fig.update_layout(
+        title_text='Deaths per Square Mile (Population Density) ' + current_date,
+        geo_scope='usa',
+    )
+
+    with open(IMAGE_PATH + "deaths_per_pop_density.png", "wb") as file:
+        file.write(scope.transform(fig, format="png"))
+
 def main():
 
     covid_df = read_data()
     covid_df = set_data_set(covid_df)
-    map_features(covid_df)
+    plot_deaths(covid_df)
+    plot_death_per_population_over_60(covid_df)
+    plot_death_per_population_density(covid_df)
 
 
 if __name__ == '__main__':
