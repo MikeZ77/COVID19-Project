@@ -1,6 +1,7 @@
 from scipy import stats
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+from sklearn.metrics import r2_score
 import numpy as np
 import pandas as pd
 
@@ -91,17 +92,50 @@ def output_regression(covid_df):
         print()
 
 
+def output_non_linear_regression(covid_df):
+    dependent = list(covid_df.columns)
+    dependent.remove('death')
+
+    cdc_svi = np.array(covid_df['cdc_svi_overall_ranking'].values)
+    deaths = np.array(covid_df['death'].values)
+    fit = np.polyfit(cdc_svi, deaths, 4)
+    poly = np.poly1d(fit)
+
+    plt.figure(figsize=(24, 8))
+    xp = np.linspace(0, 1, 100)
+    plt.plot(cdc_svi, deaths, 'b.', alpha=0.8)
+    plt.plot(xp, poly(xp), '-')
+    plt.savefig(IMAGE_PATH_REGRESSION + "cdc_svi_overall_ranking_" + "polynomial.png")
+    plt.close()
+
+    y_true = deaths
+    y_pred = poly(cdc_svi)
+    score = r2_score(y_true, y_pred)
+    print("cdc_svi_overall_ranking: Polynomial Degree 4")
+    print("R^2: " + str(score))
+
 def main():
+
+    covid_df = read_data()
+    covid_df = select_variables(covid_df)
+    """
+    ------------------------------------------------------------------------------------------------------------------------
+    PART 1: OLS
+    ------------------------------------------------------------------------------------------------------------------------
+    """
+    check_linearity(covid_df)
+    check_risidual_normality(covid_df)
+    # output_regression_details(covid_df)
+    output_regression(covid_df)
+
     """
     The assumptions for OLS are:
     (1) The sample is representative of the population.
     (2) The relationship between the variables is linear.
     (3) The residuals are normally distributed and iid.
-    """
 
-    """
     ASSUMPTIONS: 
-    (1) The sample is almost the entire population (besides a few states like Hawaii and Alaska).
+    (1) The sample is the entire population data.
 
     (2) Upon inspecting the regression plots, the relation is clearly linear.
 
@@ -142,13 +176,22 @@ def main():
     We find that many of the variables are linear (pvalue < 0.05), however, in general their variance is not well explained.
     The most significant finding is population density with a pvalue of 1.7934825125225636e-10 and an R^2 of 0.575.
     """
+    """
+    ------------------------------------------------------------------------------------------------------------------------
+    PART 2: Non-Linear Regression
+    ------------------------------------------------------------------------------------------------------------------------
+    """
+    output_non_linear_regression(covid_df)
 
-    covid_df = read_data()
-    covid_df = select_variables(covid_df)
-    check_linearity(covid_df)
-    check_risidual_normality(covid_df)
-    # output_regression_details(covid_df)
-    output_regression(covid_df)
+    """
+    Maybe one of the variables which clearly does not have a linear relationship can be modeled using using Polynomial 
+    Regression. cdc_svi_overall_ranking is a metric provided by the CDC (Centre for Dieses Control and Prevention) based 
+    on socio economic status, household composition and disability, minortity status and language, and housing type and
+    transportation. Looking at the scatterplot, it seems like there is (a bit) of a pattern in the data.
+
+    It turns out that the best resulted is given by a 4th degree polynomial, and for the most part it is no more promising
+    tank the linear regression.
+    """
 
 
 if __name__ == '__main__':
