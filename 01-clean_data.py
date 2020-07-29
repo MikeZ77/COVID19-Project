@@ -34,6 +34,7 @@ def combine_daily_race(data_store_df):
     race_df = data_store_df['daily race']
 
     daily_race_df = daily_df.merge(race_df, how='left', on=['date', 'state'])
+
     return daily_race_df
 
 
