@@ -197,6 +197,7 @@ def input_raw_data(data_store_df):
          'Deaths_AIAN',
          'Deaths_NHPI',
          'Deaths_Multiracial',
+         'Deaths_Ethnicity_Hispanic',
          'Deaths_Other',
          'Deaths_Unknown'
          ]
