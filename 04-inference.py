@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
-from sklearn import preprocessing
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 import matplotlib.pyplot as plt
 import itertools
 
@@ -175,6 +175,30 @@ def transform_data(covid_df):
     return covid_df
 
 
+def test_anova(covid_df):
+    anova = stats.f_oneway(
+        covid_df['deaths_white'].dropna().reset_index(drop=True),
+        covid_df['deaths_black'].dropna().reset_index(drop=True),
+        covid_df['deaths_ethnicity_hispanic'].dropna().reset_index(drop=True),
+        covid_df['deaths_asian'].dropna().reset_index(drop=True),
+    )
+    print(anova.pvalue)
+
+
+def test_tukey(covid_df):
+    covid_df = covid_df.drop(columns=['date', 'state'])
+    melt_df = pd.melt(covid_df).dropna().reset_index(drop=True)
+    print(melt_df)
+
+    posthoc = pairwise_tukeyhsd(
+        melt_df['value'], melt_df['variable'],
+        alpha=0.05,
+    )
+    print(posthoc)
+    plt = posthoc.plot_simultaneous()
+    plt.savefig(IMAGE_PATH_HIST + "tukeyshsd.png")
+
+
 def main():
     covid_df, socioecon_df = read_data()
     socioecon_df = reformat_headers(socioecon_df)
@@ -207,8 +231,19 @@ def main():
     """
     We now have a distribution that looks much closer to normal, and has equal variance. It is still skewed to
     the right though. An obvious problem is the 0 deaths that we removed. It looks like a small number of days
-    do have 0 deaths, and the remaining are just days that are not reported.
+    do have 0 deaths, and the remaining are just days that are not reported. We could try and interpolate 
+    these missing values, but since all distributions are missing them, it should not greatly impact the ANOVA
+    result. Given than there are ~170 sampples, by the CLT, this should be good enough to conduct the test.
     """
+
+    test_anova(covid_df)
+
+    """
+    FINDINGS: the pvalue < 0.05 so we can conclude that there is a difference in the mean of the groups
+    We can use the post-hoc Tukey's test to compare the individual groups
+    """
+
+    test_tukey(covid_df)
 
 
 if __name__ == '__main__':
