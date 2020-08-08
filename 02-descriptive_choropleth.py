@@ -4,7 +4,7 @@ import datetime as dt
 import pandas as pd
 
 DATA_PATH = 'output/'
-IMAGE_PATH = 'images/'
+IMAGE_PATH = 'images/maps/'
 FILE = 'total_cases_with_socioecon.csv'
 scope = PlotlyScope()
 
