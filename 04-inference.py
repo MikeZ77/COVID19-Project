@@ -92,7 +92,6 @@ def clean_for_race_inference(covid_df, socioecon_df):
     covid_df = covid_df[['date', 'state']]
     # Merge the dataframes by their index which has not changed
     covid_df = pd.merge(covid_df, daily_covid, left_index=True, right_index=True).reset_index(drop=True)
-    # print(covid_df.describe())
 
     return covid_df
 
@@ -143,9 +142,7 @@ def save_sample_population_distribution(covid_df):
 
 def sample_population_adjustments(covid_df):
     covid_df = covid_df.replace(0, np.NaN)
-    # print(covid_df.describe())
-    # Lets count the number of non-nan values so we can get the new sample numbers
-    print(covid_df.describe())
+
     """
     You can see that deaths_aian and deaths_nhpi have many days where 0 deaths are recorded and
     is beyond the 1.5 ratio of deaths_white, deaths_black, deaths_ethnicity_hispanic and deaths_asian.
@@ -154,6 +151,14 @@ def sample_population_adjustments(covid_df):
     removed from the analysis.
     """
     covid_df = covid_df.drop(columns=['deaths_aian', 'deaths_nhpi'])
+    # Remove the negative adjustements
+    numeric_columns = covid_df.drop(columns=['date', 'state'])
+    numeric_columns[numeric_columns < 0] = np.NaN
+    covid_df[['deaths_white', 'deaths_black', 'deaths_ethnicity_hispanic', 'deaths_asian']] = numeric_columns
+    # Lets count the number of non-nan values so we can get the new sample numbers
+    pd.set_option('float_format', '{:f}'.format)
+    print(covid_df.describe())
+
     return covid_df
 
 
@@ -170,9 +175,8 @@ def transform_data(covid_df):
     # scale_df = (scale_df - scale_df.min()) / (scale_df.max() - scale_df.min())
 
     """
-    Scale by some constant factor so that we can transform negative values. Alternatively, we can 
-    simply np.log(scale_df) without scaling and it will handle/ignore negative values. Either way, 
-    it does not impact the final result.
+    Scale by some constant factor so that we have postive values on the x-axis after logging 
+    (more readable)
     """
     # Runtime warning is from NaN which is fine
     scale_df = scale_df * 10000000
@@ -195,7 +199,7 @@ def test_anova(covid_df):
 def test_tukey(covid_df):
     covid_df = covid_df.drop(columns=['date', 'state'])
     melt_df = pd.melt(covid_df).dropna().reset_index(drop=True)
-    print(melt_df)
+    # print(melt_df)
 
     posthoc = pairwise_tukeyhsd(
         melt_df['value'], melt_df['variable'],
@@ -222,6 +226,9 @@ def main():
     Note: In order to do a t-test or ANOVA, the sample sizes must be approximately equal. At the worst, this must
     be a ratio of 1.5/1 between the two samples for unequal variance. If the variance is equal, unequal sample size
     is irrelvant. I think it makes sense to leave the negative adjustments, since they are relatively few.
+
+    UPDATE: I ended up removing the negative adjustments. Althought there are relatively few, there seem to be some
+    quite large changes (anomolies). Removing them leads to a more conservative ANOVA test/results. 
     """
     covid_df = sample_population_adjustments(covid_df)
     check_inference_conditions(covid_df)

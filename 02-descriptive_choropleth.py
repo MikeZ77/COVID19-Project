@@ -39,7 +39,7 @@ def plot_deaths(covid_df):
     ))
 
     fig.update_layout(
-        title_text='Total Deaths per US State as of ' + current_date,
+        title_text='Total Deaths per US State',
         geo_scope='usa',
     )
 
@@ -57,10 +57,11 @@ def plot_death_per_population_over_60(covid_df):
         z=covid_df['death_by_population'].astype(float),
         locationmode='USA-states',
         colorscale='Reds',
+        # colorbar_title="Deaths / Pop. 60+",
     ))
 
     fig.update_layout(
-        title_text='Deaths per Pop Over 60 as of ' + current_date,
+        title_text='Relative Deaths by Population Over 60',
         geo_scope='usa',
     )
 
@@ -78,10 +79,11 @@ def plot_death_per_population_density(covid_df):
         z=covid_df['death_by_density'].astype(float),
         locationmode='USA-states',
         colorscale='Reds',
+        # colorbar_title="Deaths / Pop. Density",
     ))
 
     fig.update_layout(
-        title_text='Deaths per Square Mile (Population Density) ' + current_date,
+        title_text='Relative Deaths by Population Density',
         geo_scope='usa',
     )
 
