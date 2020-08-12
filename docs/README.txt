@@ -6,11 +6,19 @@ python 01-clean_data.py states_daily.csv ethnicity_daily.csv socioecnomic_data.c
 05-correlation.py
  
 SETUP:
-pip install pandas
+pip install python==3.6.11
+pip install pandas==1.0.3
+pip install numpy==1.18.1
 pip install plotly==4.9.0
 pip install kaleido==0.0.1
-pip install matplotlib
+pip install matplotlib==3.1.3
 pip install statsmodels
+pip install scipy==1.5.0
+pip install scikit-learn==0.23.1
+pip install ephem==3.7.7.1
+pip install pystan==2.19.1.1
+pip install fbprophet==0.6
+pip install seaborn==0.9.0
 
 
 
