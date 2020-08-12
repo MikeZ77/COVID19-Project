@@ -92,6 +92,7 @@ def clean_for_race_inference(covid_df, socioecon_df):
     covid_df = covid_df[['date', 'state']]
     # Merge the dataframes by their index which has not changed
     covid_df = pd.merge(covid_df, daily_covid, left_index=True, right_index=True).reset_index(drop=True)
+    # print(covid_df.describe())
 
     return covid_df
 
@@ -132,7 +133,7 @@ def save_sample_population_distribution(covid_df):
     covid_df = covid_df.drop(columns=['date', 'state'])
     for col_name in list(covid_df.columns):
         plt.figure(figsize=(24, 8))
-        plt.hist(covid_df[col_name].dropna().reset_index(drop=True), bins=len(covid_df.index))
+        plt.hist(covid_df[col_name].dropna().reset_index(drop=True), bins=len(covid_df.index) - 30)
         plt.title("Histogram - " + col_name)
         plt.xlabel(col_name)
         plt.ylabel("Deaths per State Population")
@@ -142,13 +143,9 @@ def save_sample_population_distribution(covid_df):
 
 def sample_population_adjustments(covid_df):
     covid_df = covid_df.replace(0, np.NaN)
+    # print(covid_df.describe())
     # Lets count the number of non-nan values so we can get the new sample numbers
-    print(covid_df['deaths_white'].count())
-    print(covid_df['deaths_black'].count())
-    print(covid_df['deaths_ethnicity_hispanic'].count())
-    print(covid_df['deaths_asian'].count())
-    print(covid_df['deaths_aian'].count())
-    print(covid_df['deaths_nhpi'].count())
+    print(covid_df.describe())
     """
     You can see that deaths_aian and deaths_nhpi have many days where 0 deaths are recorded and
     is beyond the 1.5 ratio of deaths_white, deaths_black, deaths_ethnicity_hispanic and deaths_asian.
@@ -166,12 +163,22 @@ def transform_data(covid_df):
     """
     scale_df = covid_df.drop(columns=['date', 'state'])
     # Normalize the data since we cannot log or sqrt negative values
-    scale_df = (scale_df - scale_df.min()) / (scale_df.max() - scale_df.min())
+    """
+    Note: Tried some normalization techniques. This does not make sense to do since it changes
+    the relative means between categories.
+    """
+    # scale_df = (scale_df - scale_df.min()) / (scale_df.max() - scale_df.min())
 
-    scale_df = np.log(scale_df + 1)
+    """
+    Scale by some constant factor so that we can transform negative values. Alternatively, we can 
+    simply np.log(scale_df) without scaling and it will handle/ignore negative values. Either way, 
+    it does not impact the final result.
+    """
+    # Runtime warning is from NaN which is fine
+    scale_df = scale_df * 10000000
+    scale_df = np.log(scale_df)
 
     covid_df[['deaths_white', 'deaths_black', 'deaths_ethnicity_hispanic', 'deaths_asian']] = scale_df
-    print(covid_df)
     return covid_df
 
 
@@ -229,11 +236,23 @@ def main():
     save_sample_population_distribution(covid_df)
 
     """
-    We now have a distribution that looks much closer to normal, and has equal variance. It is still skewed to
-    the right though. An obvious problem is the 0 deaths that we removed. It looks like a small number of days
-    do have 0 deaths, and the remaining are just days that are not reported. We could try and interpolate 
-    these missing values, but since all distributions are missing them, it should not greatly impact the ANOVA
-    result. Given than there are ~170 sampples, by the CLT, this should be good enough to conduct the test.
+    We now have a distribution that looks much closer to normal, and has equal variance. It is still not completely
+    normal:
+
+    deaths_white
+    Normal pvalue: 0.0008819071811236714
+
+    deaths_black
+    Normal pvalue: 0.023506454327748054
+
+    deaths_ethnicity_hispanic
+    Normal pvalue: 0.6489008702274581
+
+    deaths_asian
+    Normal pvalue: 0.008854780559059496 
+
+    But it is much better than the extreme negative negative p-values (non-normal) than before the 
+    transformation. Given than there are ~170 sampples, by the CLT, this should be good enough to conduct the test.
     """
 
     test_anova(covid_df)
