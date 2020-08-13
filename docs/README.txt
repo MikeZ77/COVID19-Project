@@ -5,15 +5,14 @@ python 01-clean_data.py states_daily.csv ethnicity_daily.csv socioecnomic_data.c
 04-inference.py
 05-correlation.py
 
-RUN:
-the following scripts in the folder raw data NOAA
+The following scripts are located in the folder: weather/raw data NOAA
 06-NOAADataCleaning.py
 07-weatherCleanup.py
 
-the following script in the folder weather
+The following script is located in the folder: weather
 08-statesCombined.py
 
-the follwing scripts in the folder timeseries
+The following scripts are located in the folder: timeseries
 09-caseCorrelation.py
 10-covidCases.py
  
